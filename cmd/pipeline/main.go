@@ -18,14 +18,17 @@ import (
 	"context"
 	"encoding/base32"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"regexp"
+	"syscall"
 
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
+	"emperror.dev/errors/match"
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/ThreeDotsLabs/watermill/message"
 	watermillMiddleware "github.com/ThreeDotsLabs/watermill/message/router/middleware"
@@ -41,6 +44,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"github.com/mitchellh/mapstructure"
+	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus"
 	auth2 "github.com/qor/auth"
 	appkitendpoint "github.com/sagikazarmark/appkit/endpoint"
@@ -1063,7 +1067,14 @@ func main() {
 		}
 
 		{
-			process.RegisterApp(orgRouter, grpcServer, db, commonLogger, commonErrorHandler)
+			err := process.RegisterApp(
+				orgRouter,
+				grpcServer,
+				db,
+				commonLogger,
+				commonErrorHandler,
+			)
+			emperror.Panic(err)
 
 			orgs.Any("/:orgid/processes", gin.WrapH(router))
 			orgs.Any("/:orgid/processes/*path", gin.WrapH(router))
@@ -1093,20 +1104,44 @@ func main() {
 
 	base.GET("api", api.MetaHandler(engine, basePath+"/api"))
 
-	internalBindAddr := config.Pipeline.InternalAddr
-	logger.Info("Pipeline internal API listening", map[string]interface{}{"address": "http://" + internalBindAddr})
+	var group run.Group
 
-	go createInternalAPIRouter(config, db, basePath, clusterAPI, cloudinfoClient, logger, logrusLogger).Run(internalBindAddr) // nolint: errcheck
+	internalBindAddr := config.Pipeline.InternalAddr
+
+	internalRouter := createInternalAPIRouter(config, db, basePath, clusterAPI, cloudinfoClient, logger, logrusLogger)
+	group.Add(func() error {
+		logger.Info("Pipeline internal API listening", map[string]interface{}{"address": "http://" + internalBindAddr})
+		return internalRouter.Run(internalBindAddr)
+	}, nil)
 
 	bindAddr := config.Pipeline.Addr
 	certFile, keyFile := config.Pipeline.CertFile, config.Pipeline.KeyFile
 	if certFile != "" && keyFile != "" {
-		logger.Info("Pipeline API listening", map[string]interface{}{"address": "https://" + bindAddr})
-		_ = engine.RunTLS(bindAddr, certFile, keyFile)
+		group.Add(func() error {
+			logger.Info("Pipeline API listening", map[string]interface{}{"address": "https://" + bindAddr})
+			return engine.RunTLS(bindAddr, certFile, keyFile)
+		}, nil)
 	} else {
-		logger.Info("Pipeline API listening", map[string]interface{}{"address": "http://" + bindAddr})
-		_ = engine.Run(bindAddr)
+		group.Add(func() error {
+			logger.Info("Pipeline API listening", map[string]interface{}{"address": "http://" + bindAddr})
+			return engine.Run(bindAddr)
+		}, nil)
 	}
+
+	group.Add(func() error {
+		logger.Info("Pipeline GRPC listening", map[string]interface{}{"address": "grpc://" + config.Pipeline.GrpcAddr})
+		grpcListerner, err := net.Listen("tcp", config.Pipeline.GrpcAddr)
+		if err != nil {
+			return err
+		}
+		return grpcServer.Serve(grpcListerner)
+	}, nil)
+
+	// Setup signal handler
+	group.Add(run.SignalHandler(context.Background(), syscall.SIGINT, syscall.SIGTERM))
+
+	err = group.Run()
+	emperror.WithFilter(errorHandler, match.As(&run.SignalError{}).MatchError).Handle(err)
 }
 
 func createInternalAPIRouter(

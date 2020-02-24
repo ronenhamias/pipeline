@@ -117,6 +117,7 @@ func (c *configuration) Process() error {
 type PipelineConfig struct {
 	Addr         string
 	InternalAddr string
+	GrpcAddr     string
 	BasePath     string
 	CertFile     string
 	KeyFile      string
@@ -135,6 +136,10 @@ func (c PipelineConfig) Validate() error {
 	}
 
 	if c.InternalAddr == "" {
+		err = errors.Append(err, errors.New("pipeline internal address is required"))
+	}
+
+	if c.GrpcAddr == "" {
 		err = errors.Append(err, errors.New("pipeline internal address is required"))
 	}
 
@@ -170,6 +175,7 @@ func configure(v *viper.Viper, p *pflag.FlagSet) {
 	_ = v.BindPFlag("pipeline::addr", p.Lookup("addr"))
 	v.SetDefault("pipeline::addr", "127.0.0.1:9090")
 	v.SetDefault("pipeline::internalAddr", "127.0.0.1:9091")
+	v.SetDefault("pipeline::grpcAddr", "127.0.0.1:9092")
 	v.SetDefault("pipeline::basePath", "")
 	v.SetDefault("pipeline::certFile", "")
 	v.SetDefault("pipeline::keyFile", "")
