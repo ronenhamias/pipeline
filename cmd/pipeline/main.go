@@ -53,6 +53,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 	zaplog "logur.dev/integration/zap"
 	"logur.dev/logur"
 
@@ -66,6 +67,7 @@ import (
 	"github.com/banzaicloud/pipeline/internal/app/pipeline/cap/capdriver"
 	googleproject "github.com/banzaicloud/pipeline/internal/app/pipeline/cloud/google/project"
 	googleprojectdriver "github.com/banzaicloud/pipeline/internal/app/pipeline/cloud/google/project/projectdriver"
+	process "github.com/banzaicloud/pipeline/internal/app/pipeline/process/app"
 	"github.com/banzaicloud/pipeline/internal/app/pipeline/secrettype"
 	"github.com/banzaicloud/pipeline/internal/app/pipeline/secrettype/secrettypedriver"
 	arkClusterManager "github.com/banzaicloud/pipeline/internal/ark/clustermanager"
@@ -478,6 +480,9 @@ func main() {
 		clusterUpdaters,
 		dynamicClientFactory,
 	)
+
+	grpcServer := grpc.NewServer()
+	defer grpcServer.Stop()
 
 	// Initialise Gin router
 	engine := gin.New()
@@ -1055,6 +1060,13 @@ func main() {
 
 			v1.Any("/secret-types", gin.WrapH(router))
 			v1.Any("/secret-types/*path", gin.WrapH(router))
+		}
+
+		{
+			process.RegisterApp(orgRouter, grpcServer, db, commonLogger, commonErrorHandler)
+
+			orgs.Any("/:orgid/processes", gin.WrapH(router))
+			orgs.Any("/:orgid/processes/*path", gin.WrapH(router))
 		}
 
 		backups.AddRoutes(orgs.Group("/:orgid/clusters/:id/backups"))
