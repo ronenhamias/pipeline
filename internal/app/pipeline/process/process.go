@@ -34,11 +34,14 @@ type Process struct {
 
 // Service provides access to pipeline processes.
 type Service interface {
+	// CreateProcessEntry create a process entry
+	CreateProcessEntry(ctx context.Context, process Process) (Process, error)
+
 	// ListProcesses lists access processes visible for a user.
-	ListProcesses(ctx context.Context, org auth.Organization) (processes []Process, err error)
+	ListProcesses(ctx context.Context, org auth.Organization) ([]Process, error)
 
 	// GetProcess returns a single process.
-	GetProcess(ctx context.Context, org auth.Organization, id string) (process Process, err error)
+	GetProcess(ctx context.Context, org auth.Organization, id string) (Process, error)
 }
 
 // NewService returns a new Service.
@@ -92,4 +95,8 @@ func (s service) ListProcesses(ctx context.Context, org auth.Organization) ([]Pr
 
 func (s service) GetProcess(ctx context.Context, org auth.Organization, id string) (Process, error) {
 	return Process{}, nil
+}
+
+func (s service) CreateProcessEntry(ctx context.Context, p Process) (Process, error) {
+	return p, nil
 }

@@ -72,5 +72,10 @@ func RegisterApp(
 		kitxhttp.ServerOptions(httpServerOptions),
 	)
 
+	processdriver.RegisterGRPCHandlers(
+		service,
+		grpcServer,
+	)
+
 	return nil
 }
