@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package api;
+
+option java_package = "com.banzaicloud.pipeline.api";
+
+// The Process service definition.
+service Process {
+  // Adds a process entry
+  rpc Log(ProcessEntry) returns (ProcessEntryResponse);
+}
+
+// The request message containing the process name.
+message ProcessEntry {
+  uint32 orgId = 1;
+  string name = 2;
+}
+
+// The response message containing the greetings
+message ProcessEntryResponse {
+  string name = 1;
+}

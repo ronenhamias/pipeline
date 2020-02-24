@@ -1,0 +1,17 @@
+protoc:
+    version: 3.9.1
+
+generate:
+    go_options:
+        import_path: github.com/banzaicloud/pipeline
+
+    plugins:
+        -
+            name: go
+            type: go
+            path: ../../bin/protoc-gen-go
+            flags: import_path=pipeline,plugins=grpc
+            output: ../../.gen/pipeline
+
+lint:
+    group: empty
