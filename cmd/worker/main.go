@@ -39,6 +39,7 @@ import (
 
 	cloudinfoapi "github.com/banzaicloud/pipeline/.gen/cloudinfo"
 	anchore2 "github.com/banzaicloud/pipeline/internal/anchore"
+	processClient "github.com/banzaicloud/pipeline/internal/app/pipeline/process/client"
 	cluster2 "github.com/banzaicloud/pipeline/internal/cluster"
 	intClusterAuth "github.com/banzaicloud/pipeline/internal/cluster/auth"
 	"github.com/banzaicloud/pipeline/internal/cluster/clusteradapter"
@@ -389,8 +390,11 @@ func main() {
 		// Register azure specific workflows
 		registerAzureWorkflows(secretStore, tokenGenerator, azurePKEClusterStore)
 
+		processLogger, err := processClient.NewClient(processClient.Config{Address: "127.0.0.1:9092"})
+		emperror.Panic(err)
+
 		// Register EKS specific workflows
-		err = registerEKSWorkflows(secret.Store, eksClusters)
+		err = registerEKSWorkflows(secret.Store, eksClusters, processLogger)
 		if err != nil {
 			emperror.Panic(errors.WrapIf(err, "failed to register EKS workflows"))
 		}

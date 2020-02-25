@@ -19,12 +19,13 @@ import (
 	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/workflow"
 
+	processClient "github.com/banzaicloud/pipeline/internal/app/pipeline/process/client"
 	"github.com/banzaicloud/pipeline/internal/cluster/distribution/eks/eksprovider/adapter"
 	eksworkflow "github.com/banzaicloud/pipeline/internal/cluster/distribution/eks/eksprovider/workflow"
 	"github.com/banzaicloud/pipeline/src/cluster"
 )
 
-func registerEKSWorkflows(secretStore eksworkflow.SecretStore, clusterManager *adapter.ClusterManagerAdapter) error {
+func registerEKSWorkflows(secretStore eksworkflow.SecretStore, clusterManager *adapter.ClusterManagerAdapter, processLogger *processClient.Client) error {
 	vpcTemplate, err := eksworkflow.GetVPCTemplate()
 	if err != nil {
 		return errors.WrapIf(err, "failed to get CloudFormation template for VPC")

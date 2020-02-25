@@ -73,6 +73,14 @@ func encodeGetProcessHTTPResponse(ctx context.Context, w http.ResponseWriter, re
 
 func decodeListProcessesHTTPRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	org := auth.GetCurrentOrganization(r)
+	values := r.URL.Query()
+	query := map[string]string{}
+	for _, k := range []string{"resourceType", "resourceId"} {
+		v := values[k]
+		if len(v) > 0 {
+			query[k] = v[0]
+		}
+	}
 
-	return ListProcessesRequest{Org: *org}, nil
+	return ListProcessesRequest{Org: *org, Query: query}, nil
 }

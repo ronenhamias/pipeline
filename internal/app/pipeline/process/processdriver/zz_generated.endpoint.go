@@ -29,6 +29,7 @@ type serviceError interface {
 type Endpoints struct {
 	GetProcess    endpoint.Endpoint
 	ListProcesses endpoint.Endpoint
+	Log           endpoint.Endpoint
 }
 
 // MakeEndpoints returns a(n) Endpoints struct where each endpoint invokes
@@ -39,6 +40,7 @@ func MakeEndpoints(service process.Service, middleware ...endpoint.Middleware) E
 	return Endpoints{
 		GetProcess:    kitxendpoint.OperationNameMiddleware("process.GetProcess")(mw(MakeGetProcessEndpoint(service))),
 		ListProcesses: kitxendpoint.OperationNameMiddleware("process.ListProcesses")(mw(MakeListProcessesEndpoint(service))),
+		Log:           kitxendpoint.OperationNameMiddleware("process.Log")(mw(MakeLogEndpoint(service))),
 	}
 }
 
@@ -85,7 +87,8 @@ func MakeGetProcessEndpoint(service process.Service) endpoint.Endpoint {
 
 // ListProcessesRequest is a request struct for ListProcesses endpoint.
 type ListProcessesRequest struct {
-	Org auth.Organization
+	Org   auth.Organization
+	Query map[string]string
 }
 
 // ListProcessesResponse is a response struct for ListProcesses endpoint.
@@ -103,7 +106,7 @@ func MakeListProcessesEndpoint(service process.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(ListProcessesRequest)
 
-		processes, err := service.ListProcesses(ctx, req.Org)
+		processes, err := service.ListProcesses(ctx, req.Org, req.Query)
 
 		if err != nil {
 			if serviceErr := serviceError(nil); errors.As(err, &serviceErr) && serviceErr.ServiceError() {
@@ -120,5 +123,45 @@ func MakeListProcessesEndpoint(service process.Service) endpoint.Endpoint {
 		}
 
 		return ListProcessesResponse{Processes: processes}, nil
+	}
+}
+
+// LogRequest is a request struct for Log endpoint.
+type LogRequest struct {
+	Proc process.Process
+}
+
+// LogResponse is a response struct for Log endpoint.
+type LogResponse struct {
+	Process process.Process
+	Err     error
+}
+
+func (r LogResponse) Failed() error {
+	return r.Err
+}
+
+// MakeLogEndpoint returns an endpoint for the matching method of the underlying service.
+func MakeLogEndpoint(service process.Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(LogRequest)
+
+		process, err := service.Log(ctx, req.Proc)
+
+		if err != nil {
+			if serviceErr := serviceError(nil); errors.As(err, &serviceErr) && serviceErr.ServiceError() {
+				return LogResponse{
+					Err:     err,
+					Process: process,
+				}, nil
+			}
+
+			return LogResponse{
+				Err:     err,
+				Process: process,
+			}, err
+		}
+
+		return LogResponse{Process: process}, nil
 	}
 }

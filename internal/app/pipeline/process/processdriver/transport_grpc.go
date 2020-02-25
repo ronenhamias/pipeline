@@ -17,20 +17,45 @@ package processdriver
 import (
 	"context"
 
-	"github.com/banzaicloud/pipeline/.gen/pipeline"
-	"github.com/banzaicloud/pipeline/internal/app/pipeline/process"
+	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc"
+
+	pb "github.com/banzaicloud/pipeline/.gen/pipeline"
+	"github.com/banzaicloud/pipeline/internal/app/pipeline/process"
 )
 
 type GRPCAdapter struct {
 	service process.Service
 }
 
-func (g GRPCAdapter) Log(context.Context, *pipeline.ProcessEntry) (*pipeline.ProcessEntryResponse, error) {
-	return &pipeline.ProcessEntryResponse{}, nil
+func (g GRPCAdapter) Log(ctx context.Context, pe *pb.ProcessEntry) (*pb.ProcessEntryResponse, error) {
+
+	p := process.Process{
+		ID:           pe.GetId(),
+		ParentID:     pe.GetParentId(),
+		OrgID:        uint(pe.GetOrgId()),
+		Name:         pe.GetName(),
+		ResourceType: pe.GetResourceType(),
+		ResourceID:   pe.GetResourceId(),
+		Status:       pe.GetStatus(),
+	}
+
+	p.StartedAt, _ = ptypes.Timestamp(pe.GetStartedAt())
+
+	if pe.GetFinishedAt() != nil {
+		finishedAt, _ := ptypes.Timestamp(pe.GetFinishedAt())
+		p.FinishedAt = &finishedAt
+	}
+
+	_, err := g.service.Log(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.ProcessEntryResponse{}, nil
 }
 
-// RegisterGRPCHandlers mounts all of the service endpoints into an grpc.Server.
+// RegisterGRPCHandlers mounts all of the service endpoints into a grpc.Server.
 func RegisterGRPCHandlers(service process.Service, grpcServer *grpc.Server) {
-	pipeline.RegisterProcessServer(grpcServer, GRPCAdapter{service: service})
+	pb.RegisterProcessServer(grpcServer, GRPCAdapter{service: service})
 }

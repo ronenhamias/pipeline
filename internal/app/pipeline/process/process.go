@@ -23,10 +23,15 @@ import (
 
 // Process represents an pipeline process.
 type Process struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	StartedAt  time.Time  `json:"startedAt,omitempty"`
-	FinishedAt *time.Time `json:"finishedAt,omitempty"`
+	ID           string     `json:"id"`
+	ParentID     string     `json:"parentId"`
+	OrgID        uint       `json:"orgId"`
+	Name         string     `json:"name"`
+	ResourceType string     `json:"resourceType"`
+	ResourceID   string     `json:"resourceId"`
+	Status       string     `json:"status"`
+	StartedAt    time.Time  `json:"startedAt,omitempty"`
+	FinishedAt   *time.Time `json:"finishedAt,omitempty"`
 }
 
 //go:generate mga gen mockery --name Service --inpkg
@@ -34,14 +39,14 @@ type Process struct {
 
 // Service provides access to pipeline processes.
 type Service interface {
-	// CreateProcessEntry create a process entry
-	CreateProcessEntry(ctx context.Context, process Process) (Process, error)
+	// Log create a process entry
+	Log(ctx context.Context, proc Process) (process Process, err error)
 
 	// ListProcesses lists access processes visible for a user.
-	ListProcesses(ctx context.Context, org auth.Organization) ([]Process, error)
+	ListProcesses(ctx context.Context, org auth.Organization, query map[string]string) (processes []Process, err error)
 
 	// GetProcess returns a single process.
-	GetProcess(ctx context.Context, org auth.Organization, id string) (Process, error)
+	GetProcess(ctx context.Context, org auth.Organization, id string) (process Process, err error)
 }
 
 // NewService returns a new Service.
@@ -56,10 +61,10 @@ type service struct {
 // Store persists access processes in a persistent store.
 type Store interface {
 	// List lists the process in the for a given organization.
-	List(ctx context.Context, orgID uint) ([]Process, error)
+	List(ctx context.Context, orgID uint, query map[string]string) ([]Process, error)
 
-	// // Lookup finds a process.
-	// Lookup(ctx context.Context, orgID string, processID string) (Process, error)
+	// Log adds a process entry.
+	Log(ctx context.Context, p Process) error
 }
 
 // NotFoundError is returned if a process cannot be found.
@@ -89,14 +94,14 @@ func (NotFoundError) ServiceError() bool {
 	return true
 }
 
-func (s service) ListProcesses(ctx context.Context, org auth.Organization) ([]Process, error) {
-	return s.store.List(ctx, org.ID)
+func (s service) ListProcesses(ctx context.Context, org auth.Organization, query map[string]string) ([]Process, error) {
+	return s.store.List(ctx, org.ID, query)
 }
 
 func (s service) GetProcess(ctx context.Context, org auth.Organization, id string) (Process, error) {
 	return Process{}, nil
 }
 
-func (s service) CreateProcessEntry(ctx context.Context, p Process) (Process, error) {
-	return p, nil
+func (s service) Log(ctx context.Context, p Process) (Process, error) {
+	return p, s.store.Log(ctx, p)
 }

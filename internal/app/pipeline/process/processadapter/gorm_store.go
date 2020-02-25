@@ -30,10 +30,15 @@ const (
 )
 
 type processModel struct {
-	ID         string     `gorm:"primary_key"`
-	Name       string     `gorm:"not null"`
-	StartedAt  time.Time  `gorm:"index:idx_start_time_end_time;default:current_timestamp;not null"`
-	FinishedAt *time.Time `gorm:"index:idx_start_time_end_time;default:'1970-01-01 00:00:01';not null"`
+	ID           string `gorm:"primary_key"`
+	ParentID     string `gorm:"primary_key"`
+	OrgID        uint
+	Name         string `gorm:"not null"`
+	ResourceType string
+	ResourceID   string
+	Status       string
+	StartedAt    time.Time  `gorm:"index:idx_start_time_end_time;default:current_timestamp;not null"`
+	FinishedAt   *time.Time `gorm:"index:idx_start_time_end_time;default:'1970-01-01 00:00:01';not null"`
 }
 
 // TableName changes the default table name.
@@ -54,10 +59,12 @@ func NewGormStore(db *gorm.DB) *GormStore {
 }
 
 // List returns the list of active processes.
-func (s *GormStore) List(ctx context.Context, orgID uint) ([]process.Process, error) {
+func (s *GormStore) List(ctx context.Context, orgID uint, query map[string]string) ([]process.Process, error) {
 	var processes []processModel
 
-	err := s.db.Where("? BETWEEN started_at AND finished_at", time.Now()).Find(&processes).Error
+	where := process.Process{OrgID: orgID, ResourceType: query["resourceType"], ResourceID: query["resourceId"]}
+
+	err := s.db.Find(&processes, where).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find processes")
 	}
@@ -66,9 +73,54 @@ func (s *GormStore) List(ctx context.Context, orgID uint) ([]process.Process, er
 
 	for _, n := range processes {
 		result = append(result, process.Process{
-			ID: n.ID,
+			ID:           n.ID,
+			ParentID:     n.ParentID,
+			OrgID:        n.OrgID,
+			Name:         n.Name,
+			StartedAt:    n.StartedAt,
+			FinishedAt:   n.FinishedAt,
+			ResourceID:   n.ResourceID,
+			ResourceType: n.ResourceType,
+			Status:       n.Status,
 		})
 	}
 
 	return result, nil
+}
+
+// Log logs a process entry
+func (s *GormStore) Log(ctx context.Context, p process.Process) error {
+
+	existing := processModel{ID: p.ID, ParentID: p.ParentID}
+
+	err := s.db.Find(&existing).Error
+	if err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			pm := processModel{
+				ID:           p.ID,
+				ParentID:     p.ParentID,
+				OrgID:        p.OrgID,
+				Name:         p.Name,
+				ResourceType: p.ResourceType,
+				ResourceID:   p.ResourceID,
+				Status:       p.Status,
+				StartedAt:    p.StartedAt,
+			}
+
+			err := s.db.Create(&pm).Error
+			return errors.Wrap(err, "failed to create process")
+		}
+
+		return err
+	}
+
+	existing.Status = p.Status
+	existing.FinishedAt = p.FinishedAt
+
+	err = s.db.Save(&existing).Error
+	if err != nil {
+		return errors.Wrap(err, "failed to update process")
+	}
+
+	return nil
 }
