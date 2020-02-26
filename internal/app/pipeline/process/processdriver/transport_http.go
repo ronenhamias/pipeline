@@ -23,6 +23,7 @@ import (
 	"github.com/gorilla/mux"
 	kitxhttp "github.com/sagikazarmark/kitx/transport/http"
 
+	"github.com/banzaicloud/pipeline/internal/app/pipeline/process"
 	apphttp "github.com/banzaicloud/pipeline/internal/platform/appkit/transport/http"
 	"github.com/banzaicloud/pipeline/src/auth"
 )
@@ -73,14 +74,20 @@ func encodeGetProcessHTTPResponse(ctx context.Context, w http.ResponseWriter, re
 
 func decodeListProcessesHTTPRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	org := auth.GetCurrentOrganization(r)
-	values := r.URL.Query()
-	query := map[string]string{}
-	for _, k := range []string{"resourceType", "resourceId"} {
-		v := values[k]
-		if len(v) > 0 {
-			query[k] = v[0]
-		}
+
+	query := process.Process{
+		OrgID: org.ID,
 	}
 
-	return ListProcessesRequest{Org: *org, Query: query}, nil
+	values := r.URL.Query()
+
+	if rt := values["resourceType"]; len(rt) > 0 {
+		query.ResourceType = rt[0]
+	}
+
+	if rt := values["resourceId"]; len(rt) > 0 {
+		query.ResourceID = rt[0]
+	}
+
+	return ListProcessesRequest{Query: query}, nil
 }

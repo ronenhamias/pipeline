@@ -31,12 +31,12 @@ const (
 
 type processModel struct {
 	ID           string `gorm:"primary_key"`
-	ParentID     string `gorm:"primary_key"`
-	OrgID        uint
-	Name         string `gorm:"not null"`
-	ResourceType string
-	ResourceID   string
-	Status       string
+	ParentID     string
+	OrgID        uint       `gorm:"not null"`
+	Name         string     `gorm:"not null"`
+	ResourceType string     `gorm:"not null"`
+	ResourceID   string     `gorm:"not null"`
+	Status       string     `gorm:"not null"`
 	StartedAt    time.Time  `gorm:"index:idx_start_time_end_time;default:current_timestamp;not null"`
 	FinishedAt   *time.Time `gorm:"index:idx_start_time_end_time;default:'1970-01-01 00:00:01';not null"`
 }
@@ -59,12 +59,10 @@ func NewGormStore(db *gorm.DB) *GormStore {
 }
 
 // List returns the list of active processes.
-func (s *GormStore) List(ctx context.Context, orgID uint, query map[string]string) ([]process.Process, error) {
+func (s *GormStore) List(ctx context.Context, query process.Process) ([]process.Process, error) {
 	var processes []processModel
 
-	where := process.Process{OrgID: orgID, ResourceType: query["resourceType"], ResourceID: query["resourceId"]}
-
-	err := s.db.Find(&processes, where).Error
+	err := s.db.Find(&processes, query).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find processes")
 	}

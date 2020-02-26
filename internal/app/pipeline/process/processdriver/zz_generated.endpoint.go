@@ -87,8 +87,7 @@ func MakeGetProcessEndpoint(service process.Service) endpoint.Endpoint {
 
 // ListProcessesRequest is a request struct for ListProcesses endpoint.
 type ListProcessesRequest struct {
-	Org   auth.Organization
-	Query map[string]string
+	Query process.Process
 }
 
 // ListProcessesResponse is a response struct for ListProcesses endpoint.
@@ -106,7 +105,7 @@ func MakeListProcessesEndpoint(service process.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(ListProcessesRequest)
 
-		processes, err := service.ListProcesses(ctx, req.Org, req.Query)
+		processes, err := service.ListProcesses(ctx, req.Query)
 
 		if err != nil {
 			if serviceErr := serviceError(nil); errors.As(err, &serviceErr) && serviceErr.ServiceError() {

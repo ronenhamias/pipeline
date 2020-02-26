@@ -43,31 +43,45 @@ func NewClient(c Config) (*Client, error) {
 	return &Client{grpcClient: grpcClient}, nil
 }
 
-func (c *Client) Log(ctx context.Context, orgID uint, name string, resourceType string, resourceID string, status string, startedAt time.Time, finishedAt *time.Time) error {
+type ProcessEntry struct {
+	ID           string
+	ParentID     string
+	OrgID        uint
+	Name         string
+	ResourceType ResourceType
+	ResourceID   string
+	Status       Status
+	StartedAt    time.Time
+	FinishedAt   *time.Time
+}
 
-	// activityInfo := activity.GetInfo(ctx)
+type ResourceType string
+type Status string
 
-	// pe := pb.ProcessEntry{
-	// 	Id:       activityInfo.ActivityID,
-	// 	ParentId: activityInfo.WorkflowExecution.ID,
-	// 	OrgId:    orgID,
-	// 	Name:     activityInfo.ActivityType.Name,
-	// }
+const (
+	Cluster ResourceType = "cluster"
+
+	Running  Status = "running"
+	Failed   Status = "failed"
+	Finished Status = "finished"
+)
+
+func (c *Client) Log(ctx context.Context, e ProcessEntry) error {
 
 	pe := pb.ProcessEntry{
-		Id:           "1234-5678",
-		ParentId:     "9876-5432",
-		OrgId:        uint32(orgID),
-		Name:         name,
-		ResourceType: resourceType,
-		ResourceId:   resourceID,
-		Status:       status,
+		Id:           e.ID,
+		ParentId:     e.ParentID,
+		OrgId:        uint32(e.OrgID),
+		Name:         e.Name,
+		ResourceType: string(e.ResourceType),
+		ResourceId:   e.ResourceID,
+		Status:       string(e.Status),
 	}
 
-	pe.StartedAt, _ = ptypes.TimestampProto(startedAt)
+	pe.StartedAt, _ = ptypes.TimestampProto(e.StartedAt)
 
-	if finishedAt != nil {
-		finishedAt, _ := ptypes.TimestampProto(*finishedAt)
+	if e.FinishedAt != nil {
+		finishedAt, _ := ptypes.TimestampProto(*e.FinishedAt)
 		pe.FinishedAt = finishedAt
 	}
 

@@ -25,6 +25,7 @@ import (
 	"go.uber.org/cadence"
 	"go.uber.org/cadence/activity"
 
+	processClient "github.com/banzaicloud/pipeline/internal/app/pipeline/process/client"
 	pkgCloudformation "github.com/banzaicloud/pipeline/pkg/providers/amazon/cloudformation"
 )
 
@@ -35,6 +36,8 @@ type CreateVpcActivity struct {
 	awsSessionFactory *AWSSessionFactory
 	// body of the cloud formation template for setting up the VPC
 	cloudFormationTemplate string
+
+	processLogger *processClient.Client
 }
 
 // CreateVpcActivityInput holds data needed for setting up
@@ -64,10 +67,11 @@ type CreateVpcActivityOutput struct {
 }
 
 // NewCreateVPCActivity instantiates a new CreateVpcActivity
-func NewCreateVPCActivity(awsSessionFactory *AWSSessionFactory, cloudFormationTemplate string) *CreateVpcActivity {
+func NewCreateVPCActivity(awsSessionFactory *AWSSessionFactory, cloudFormationTemplate string, processLogger *processClient.Client) *CreateVpcActivity {
 	return &CreateVpcActivity{
 		awsSessionFactory:      awsSessionFactory,
 		cloudFormationTemplate: cloudFormationTemplate,
+		processLogger:          processLogger,
 	}
 }
 

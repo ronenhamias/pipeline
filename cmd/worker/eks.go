@@ -51,7 +51,7 @@ func registerEKSWorkflows(secretStore eksworkflow.SecretStore, clusterManager *a
 
 	awsSessionFactory := eksworkflow.NewAWSSessionFactory(secretStore)
 
-	createVPCActivity := eksworkflow.NewCreateVPCActivity(awsSessionFactory, vpcTemplate)
+	createVPCActivity := eksworkflow.NewCreateVPCActivity(awsSessionFactory, vpcTemplate, processLogger)
 	activity.RegisterWithOptions(createVPCActivity.Execute, activity.RegisterOptions{Name: eksworkflow.CreateVpcActivityName})
 
 	createSubnetActivity := eksworkflow.NewCreateSubnetActivity(awsSessionFactory, subnetTemplate)

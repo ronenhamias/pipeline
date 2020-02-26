@@ -36,13 +36,13 @@ func (_m *MockService) GetProcess(ctx context.Context, org auth.Organization, id
 	return r0, r1
 }
 
-// ListProcesses provides a mock function with given fields: ctx, org, query
-func (_m *MockService) ListProcesses(ctx context.Context, org auth.Organization, query map[string]string) ([]Process, error) {
-	ret := _m.Called(ctx, org, query)
+// ListProcesses provides a mock function with given fields: ctx, query
+func (_m *MockService) ListProcesses(ctx context.Context, query Process) ([]Process, error) {
+	ret := _m.Called(ctx, query)
 
 	var r0 []Process
-	if rf, ok := ret.Get(0).(func(context.Context, auth.Organization, map[string]string) []Process); ok {
-		r0 = rf(ctx, org, query)
+	if rf, ok := ret.Get(0).(func(context.Context, Process) []Process); ok {
+		r0 = rf(ctx, query)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]Process)
@@ -50,8 +50,8 @@ func (_m *MockService) ListProcesses(ctx context.Context, org auth.Organization,
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, auth.Organization, map[string]string) error); ok {
-		r1 = rf(ctx, org, query)
+	if rf, ok := ret.Get(1).(func(context.Context, Process) error); ok {
+		r1 = rf(ctx, query)
 	} else {
 		r1 = ret.Error(1)
 	}

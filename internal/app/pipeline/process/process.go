@@ -43,7 +43,7 @@ type Service interface {
 	Log(ctx context.Context, proc Process) (process Process, err error)
 
 	// ListProcesses lists access processes visible for a user.
-	ListProcesses(ctx context.Context, org auth.Organization, query map[string]string) (processes []Process, err error)
+	ListProcesses(ctx context.Context, query Process) (processes []Process, err error)
 
 	// GetProcess returns a single process.
 	GetProcess(ctx context.Context, org auth.Organization, id string) (process Process, err error)
@@ -61,7 +61,7 @@ type service struct {
 // Store persists access processes in a persistent store.
 type Store interface {
 	// List lists the process in the for a given organization.
-	List(ctx context.Context, orgID uint, query map[string]string) ([]Process, error)
+	List(ctx context.Context, query Process) ([]Process, error)
 
 	// Log adds a process entry.
 	Log(ctx context.Context, p Process) error
@@ -94,8 +94,8 @@ func (NotFoundError) ServiceError() bool {
 	return true
 }
 
-func (s service) ListProcesses(ctx context.Context, org auth.Organization, query map[string]string) ([]Process, error) {
-	return s.store.List(ctx, org.ID, query)
+func (s service) ListProcesses(ctx context.Context, query Process) ([]Process, error) {
+	return s.store.List(ctx, query)
 }
 
 func (s service) GetProcess(ctx context.Context, org auth.Organization, id string) (Process, error) {
