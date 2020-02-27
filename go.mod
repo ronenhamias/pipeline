@@ -76,6 +76,7 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/moogar0880/problems v0.1.1
 	github.com/oklog/run v1.1.0
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/oracle/oci-go-sdk v2.0.0+incompatible
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pelletier/go-toml v1.6.0

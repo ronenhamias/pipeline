@@ -16,6 +16,7 @@ package cadence
 
 import (
 	"emperror.dev/errors"
+	"github.com/banzaicloud/pipeline/internal/app/pipeline/process/tracer"
 	"go.uber.org/cadence/client"
 	"go.uber.org/zap"
 )
@@ -27,11 +28,17 @@ func NewClient(config Config, logger *zap.Logger) (client.Client, error) {
 		return nil, errors.WithMessage(err, "could not create cadence client")
 	}
 
+	tracer, err := tracer.NewProcessTracer("127.0.0.1:9092")
+	if err != nil {
+		return nil, errors.WrapIf(err, "could not create cadence client tracer")
+	}
+
 	return client.NewClient(
 		serviceClient,
 		config.Domain,
 		&client.Options{
 			Identity: config.Identity,
+			Tracer:   tracer,
 		},
 	), nil
 }

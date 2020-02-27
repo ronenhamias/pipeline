@@ -22,6 +22,8 @@ import (
 	"go.uber.org/cadence/.gen/go/shared"
 	"go.uber.org/cadence/worker"
 	"go.uber.org/zap"
+
+	"github.com/banzaicloud/pipeline/internal/app/pipeline/process/tracer"
 )
 
 // NewWorker returns a new Cadence worker.
@@ -47,12 +49,18 @@ func NewWorker(config Config, taskList string, logger *zap.Logger) (worker.Worke
 		}
 	}
 
+	tracer, err := tracer.NewProcessTracer("127.0.0.1:9092")
+	if err != nil {
+		return nil, errors.WrapIf(err, "could not create cadence worker tracer")
+	}
+
 	return worker.New(
 		serviceClient,
 		config.Domain,
 		taskList,
 		worker.Options{
 			Logger: logger,
+			Tracer: tracer,
 		},
 	), nil
 }
