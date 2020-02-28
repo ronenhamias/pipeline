@@ -29,7 +29,8 @@ type serviceError interface {
 type Endpoints struct {
 	GetProcess    endpoint.Endpoint
 	ListProcesses endpoint.Endpoint
-	Log           endpoint.Endpoint
+	LogEvent      endpoint.Endpoint
+	LogProcess    endpoint.Endpoint
 }
 
 // MakeEndpoints returns a(n) Endpoints struct where each endpoint invokes
@@ -40,7 +41,8 @@ func MakeEndpoints(service process.Service, middleware ...endpoint.Middleware) E
 	return Endpoints{
 		GetProcess:    kitxendpoint.OperationNameMiddleware("process.GetProcess")(mw(MakeGetProcessEndpoint(service))),
 		ListProcesses: kitxendpoint.OperationNameMiddleware("process.ListProcesses")(mw(MakeListProcessesEndpoint(service))),
-		Log:           kitxendpoint.OperationNameMiddleware("process.Log")(mw(MakeLogEndpoint(service))),
+		LogEvent:      kitxendpoint.OperationNameMiddleware("process.LogEvent")(mw(MakeLogEventEndpoint(service))),
+		LogProcess:    kitxendpoint.OperationNameMiddleware("process.LogProcess")(mw(MakeLogProcessEndpoint(service))),
 	}
 }
 
@@ -125,42 +127,82 @@ func MakeListProcessesEndpoint(service process.Service) endpoint.Endpoint {
 	}
 }
 
-// LogRequest is a request struct for Log endpoint.
-type LogRequest struct {
+// LogEventRequest is a request struct for LogEvent endpoint.
+type LogEventRequest struct {
+	Proc process.ProcessEvent
+}
+
+// LogEventResponse is a response struct for LogEvent endpoint.
+type LogEventResponse struct {
+	ProcessEvent process.ProcessEvent
+	Err          error
+}
+
+func (r LogEventResponse) Failed() error {
+	return r.Err
+}
+
+// MakeLogEventEndpoint returns an endpoint for the matching method of the underlying service.
+func MakeLogEventEndpoint(service process.Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(LogEventRequest)
+
+		processEvent, err := service.LogEvent(ctx, req.Proc)
+
+		if err != nil {
+			if serviceErr := serviceError(nil); errors.As(err, &serviceErr) && serviceErr.ServiceError() {
+				return LogEventResponse{
+					Err:          err,
+					ProcessEvent: processEvent,
+				}, nil
+			}
+
+			return LogEventResponse{
+				Err:          err,
+				ProcessEvent: processEvent,
+			}, err
+		}
+
+		return LogEventResponse{ProcessEvent: processEvent}, nil
+	}
+}
+
+// LogProcessRequest is a request struct for LogProcess endpoint.
+type LogProcessRequest struct {
 	Proc process.Process
 }
 
-// LogResponse is a response struct for Log endpoint.
-type LogResponse struct {
+// LogProcessResponse is a response struct for LogProcess endpoint.
+type LogProcessResponse struct {
 	Process process.Process
 	Err     error
 }
 
-func (r LogResponse) Failed() error {
+func (r LogProcessResponse) Failed() error {
 	return r.Err
 }
 
-// MakeLogEndpoint returns an endpoint for the matching method of the underlying service.
-func MakeLogEndpoint(service process.Service) endpoint.Endpoint {
+// MakeLogProcessEndpoint returns an endpoint for the matching method of the underlying service.
+func MakeLogProcessEndpoint(service process.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(LogRequest)
+		req := request.(LogProcessRequest)
 
-		process, err := service.Log(ctx, req.Proc)
+		process, err := service.LogProcess(ctx, req.Proc)
 
 		if err != nil {
 			if serviceErr := serviceError(nil); errors.As(err, &serviceErr) && serviceErr.ServiceError() {
-				return LogResponse{
+				return LogProcessResponse{
 					Err:     err,
 					Process: process,
 				}, nil
 			}
 
-			return LogResponse{
+			return LogProcessResponse{
 				Err:     err,
 				Process: process,
 			}, err
 		}
 
-		return LogResponse{Process: process}, nil
+		return LogProcessResponse{Process: process}, nil
 	}
 }

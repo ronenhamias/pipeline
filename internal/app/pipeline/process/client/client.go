@@ -55,6 +55,13 @@ type ProcessEntry struct {
 	FinishedAt   *time.Time
 }
 
+type ProcessEvent struct {
+	ProcessID string
+	Name      string
+	Log       string
+	Timestamp time.Time
+}
+
 type ResourceType string
 type Status string
 
@@ -66,7 +73,7 @@ const (
 	Finished Status = "finished"
 )
 
-func (c *Client) Log(ctx context.Context, e ProcessEntry) error {
+func (c *Client) LogProcess(ctx context.Context, e ProcessEntry) error {
 
 	pe := pb.ProcessEntry{
 		Id:           e.ID,
@@ -85,7 +92,22 @@ func (c *Client) Log(ctx context.Context, e ProcessEntry) error {
 		pe.FinishedAt = finishedAt
 	}
 
-	_, err := c.grpcClient.Log(ctx, &pe)
+	_, err := c.grpcClient.LogProcess(ctx, &pe)
+
+	return err
+}
+
+func (c *Client) LogEvent(ctx context.Context, e ProcessEvent) error {
+
+	pe := pb.ProcessEvent{
+		ProcessId: e.ProcessID,
+		Name:      e.Name,
+		Log:       e.Log,
+	}
+
+	pe.Timestamp, _ = ptypes.TimestampProto(e.Timestamp)
+
+	_, err := c.grpcClient.LogEvent(ctx, &pe)
 
 	return err
 }

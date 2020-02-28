@@ -9,28 +9,33 @@ import "google/protobuf/timestamp.proto";
 // The Process service definition.
 service Process {
   // Adds a process entry
-  rpc Log(ProcessEntry) returns (ProcessEntryResponse);
+  rpc LogProcess(ProcessEntry) returns (ProcessEntryResponse);
+  
+  // Adds a process event
+  rpc LogEvent(ProcessEvent) returns (ProcessEventResponse);
 }
 
-// The request message containing the process name.
+// The request message containing the process.
 message ProcessEntry {
   string id = 1;
   string parentId = 2;
   uint32 orgId = 3;
   string name = 4;
-  enum ResourceType {
-    CLUSTER = 0;
-  }
   string resourceType = 5;
   string resourceId = 6;
-  enum Status {
-    SUCCESS = 0;
-    FAILURED = 1;
-  }
   string status = 7;
   google.protobuf.Timestamp startedAt = 8;
   google.protobuf.Timestamp finishedAt = 9;
 }
 
-// The response message containing the greetings
+// The request message containing the event.
+message ProcessEvent {
+  string processId = 1;
+  string name = 2;
+  string log = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
 message ProcessEntryResponse {}
+
+message ProcessEventResponse {}

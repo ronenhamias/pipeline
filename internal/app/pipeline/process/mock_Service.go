@@ -59,8 +59,29 @@ func (_m *MockService) ListProcesses(ctx context.Context, query Process) ([]Proc
 	return r0, r1
 }
 
-// Log provides a mock function with given fields: ctx, proc
-func (_m *MockService) Log(ctx context.Context, proc Process) (Process, error) {
+// LogEvent provides a mock function with given fields: ctx, proc
+func (_m *MockService) LogEvent(ctx context.Context, proc ProcessEvent) (ProcessEvent, error) {
+	ret := _m.Called(ctx, proc)
+
+	var r0 ProcessEvent
+	if rf, ok := ret.Get(0).(func(context.Context, ProcessEvent) ProcessEvent); ok {
+		r0 = rf(ctx, proc)
+	} else {
+		r0 = ret.Get(0).(ProcessEvent)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, ProcessEvent) error); ok {
+		r1 = rf(ctx, proc)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// LogProcess provides a mock function with given fields: ctx, proc
+func (_m *MockService) LogProcess(ctx context.Context, proc Process) (Process, error) {
 	ret := _m.Called(ctx, proc)
 
 	var r0 Process

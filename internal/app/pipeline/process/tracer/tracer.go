@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/banzaicloud/pipeline/internal/app/pipeline/process/client"
-	processClient "github.com/banzaicloud/pipeline/internal/app/pipeline/process/client"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
+
+	"github.com/banzaicloud/pipeline/internal/app/pipeline/process/client"
+	processClient "github.com/banzaicloud/pipeline/internal/app/pipeline/process/client"
 )
 
 const (
@@ -42,33 +43,45 @@ func (t processTracer) StartSpan(operationName string, opts ...opentracing.Start
 		opt.Apply(&options)
 	}
 
+	span.activity = isActivity(options)
+
 	// do we have a parent?
 	if len(options.References) > 0 {
 		fmt.Printf("------ yes we have a parent: %+v\n", options.References)
 		reference := options.References[0]
 		if reference.Type == opentracing.FollowsFromRef {
 			parentContext := reference.ReferencedContext.(processSpanContext)
-			span.entry.ParentID = parentContext.span.entry.ID
+			span.process.ParentID = parentContext.span.process.ID
 		}
 	}
 
-	span.entry.ID = options.Tags[workflowTag].(string)
-	span.entry.Name = operationName
-	span.entry.StartedAt = options.StartTime
-	span.entry.Status = client.Running
-	span.entry.ResourceType = client.Cluster
-
-	span.entry.OrgID = 1 // TODO
-
-	span.activity = isActivity(options)
-
 	if !span.activity {
-		err := t.client.Log(context.Background(), span.entry)
+		span.process.ID = options.Tags[workflowTag].(string)
+		span.process.Name = operationName
+		span.process.StartedAt = options.StartTime
+		span.process.Status = client.Running
+		span.process.ResourceType = client.Cluster
+		span.process.OrgID = 1 // TODO
+
+		err := t.client.LogProcess(context.Background(), span.process)
 		if err != nil {
 			println("----------- failed to start span:", err.Error())
 		}
 
-		fmt.Printf("------------ started span: %+v\n", span.entry)
+		fmt.Printf("------------ started span: %+v\n", span.process)
+	} else {
+		span.event.ProcessID = options.Tags[workflowTag].(string)
+		span.event.Name = operationName
+		span.event.Log = operationName + " has started"
+		span.event.Timestamp = options.StartTime
+
+		err := t.client.LogEvent(context.Background(), span.event)
+		if err != nil {
+			println("----------- failed to start span:", err.Error())
+		}
+
+		fmt.Printf("------------ started span: %+v\n", span.event)
+
 	}
 
 	return &span
@@ -130,7 +143,8 @@ func (n processSpanContext) ForeachBaggageItem(handler func(k, v string) bool) {
 
 type processSpan struct {
 	tracer   *processTracer
-	entry    processClient.ProcessEntry
+	process  processClient.ProcessEntry
+	event    processClient.ProcessEvent
 	activity bool
 }
 
@@ -142,10 +156,17 @@ func (n processSpan) LogFields(fields ...log.Field)                         {}
 func (n processSpan) LogKV(keyVals ...interface{})                          {}
 func (n processSpan) Finish() {
 	finishedAt := time.Now()
-	n.entry.FinishedAt = &finishedAt
-	n.entry.Status = client.Finished // TODO
 	if !n.activity {
-		err := n.tracer.client.Log(context.Background(), n.entry)
+		n.process.FinishedAt = &finishedAt
+		n.process.Status = client.Finished // TODO
+		err := n.tracer.client.LogProcess(context.Background(), n.process)
+		if err != nil {
+			println("----------- failed to finish span:", err.Error())
+		}
+	} else {
+		n.event.Timestamp = finishedAt
+		n.event.Log = n.event.Name + " has finished"
+		err := n.tracer.client.LogEvent(context.Background(), n.event)
 		if err != nil {
 			println("----------- failed to finish span:", err.Error())
 		}

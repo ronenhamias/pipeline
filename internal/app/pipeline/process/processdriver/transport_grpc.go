@@ -28,7 +28,7 @@ type GRPCAdapter struct {
 	service process.Service
 }
 
-func (g GRPCAdapter) Log(ctx context.Context, pe *pb.ProcessEntry) (*pb.ProcessEntryResponse, error) {
+func (g GRPCAdapter) LogProcess(ctx context.Context, pe *pb.ProcessEntry) (*pb.ProcessEntryResponse, error) {
 
 	p := process.Process{
 		ID:           pe.GetId(),
@@ -47,12 +47,30 @@ func (g GRPCAdapter) Log(ctx context.Context, pe *pb.ProcessEntry) (*pb.ProcessE
 		p.FinishedAt = &finishedAt
 	}
 
-	_, err := g.service.Log(ctx, p)
+	_, err := g.service.LogProcess(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pb.ProcessEntryResponse{}, nil
+}
+
+func (g GRPCAdapter) LogEvent(ctx context.Context, pe *pb.ProcessEvent) (*pb.ProcessEventResponse, error) {
+
+	p := process.ProcessEvent{
+		ProcessID: pe.GetProcessId(),
+		Name:      pe.GetName(),
+		Log:       pe.GetLog(),
+	}
+
+	p.Timestamp, _ = ptypes.Timestamp(pe.GetTimestamp())
+
+	_, err := g.service.LogEvent(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.ProcessEventResponse{}, nil
 }
 
 // RegisterGRPCHandlers mounts all of the service endpoints into a grpc.Server.

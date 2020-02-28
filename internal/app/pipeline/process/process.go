@@ -23,15 +23,24 @@ import (
 
 // Process represents an pipeline process.
 type Process struct {
-	ID           string     `json:"id"`
-	ParentID     string     `json:"parentId"`
-	OrgID        uint       `json:"orgId"`
-	Name         string     `json:"name"`
-	ResourceType string     `json:"resourceType"`
-	ResourceID   string     `json:"resourceId"`
-	Status       string     `json:"status"`
-	StartedAt    time.Time  `json:"startedAt,omitempty"`
-	FinishedAt   *time.Time `json:"finishedAt,omitempty"`
+	ID           string         `json:"id"`
+	ParentID     string         `json:"parentId"`
+	OrgID        uint           `json:"orgId"`
+	Name         string         `json:"name"`
+	ResourceType string         `json:"resourceType"`
+	ResourceID   string         `json:"resourceId"`
+	Status       string         `json:"status"`
+	StartedAt    time.Time      `json:"startedAt,omitempty"`
+	FinishedAt   *time.Time     `json:"finishedAt,omitempty"`
+	Events       []ProcessEvent `json:"events,omitempty"`
+}
+
+// ProcessEvent represents an pipeline process event.
+type ProcessEvent struct {
+	ProcessID string    `json:"processId"`
+	Name      string    `json:"name"`
+	Log       string    `json:"log"`
+	Timestamp time.Time `json:"timestamp,omitempty"`
 }
 
 //go:generate mga gen mockery --name Service --inpkg
@@ -39,8 +48,11 @@ type Process struct {
 
 // Service provides access to pipeline processes.
 type Service interface {
-	// Log create a process entry
-	Log(ctx context.Context, proc Process) (process Process, err error)
+	// LogProcess create a process entry
+	LogProcess(ctx context.Context, proc Process) (process Process, err error)
+
+	// LogEvent create a process event
+	LogEvent(ctx context.Context, proc ProcessEvent) (ProcessEvent ProcessEvent, err error)
 
 	// ListProcesses lists access processes visible for a user.
 	ListProcesses(ctx context.Context, query Process) (processes []Process, err error)
@@ -63,8 +75,11 @@ type Store interface {
 	// List lists the process in the for a given organization.
 	List(ctx context.Context, query Process) ([]Process, error)
 
-	// Log adds a process entry.
-	Log(ctx context.Context, p Process) error
+	// LogProcess adds a process entry.
+	LogProcess(ctx context.Context, p Process) error
+
+	// LogEvent adds a process event to a process.
+	LogEvent(ctx context.Context, p ProcessEvent) error
 }
 
 // NotFoundError is returned if a process cannot be found.
@@ -102,6 +117,10 @@ func (s service) GetProcess(ctx context.Context, org auth.Organization, id strin
 	return Process{}, nil
 }
 
-func (s service) Log(ctx context.Context, p Process) (Process, error) {
-	return p, s.store.Log(ctx, p)
+func (s service) LogProcess(ctx context.Context, p Process) (Process, error) {
+	return p, s.store.LogProcess(ctx, p)
+}
+
+func (s service) LogEvent(ctx context.Context, p ProcessEvent) (ProcessEvent, error) {
+	return p, s.store.LogEvent(ctx, p)
 }

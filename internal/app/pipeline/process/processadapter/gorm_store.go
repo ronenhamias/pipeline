@@ -26,24 +26,38 @@ import (
 
 // TableName constants
 const (
-	processTableName = "processes"
+	processTableName      = "processes"
+	processEventTableName = "process_events"
 )
 
 type processModel struct {
 	ID           string `gorm:"primary_key"`
 	ParentID     string
-	OrgID        uint       `gorm:"not null"`
-	Name         string     `gorm:"not null"`
-	ResourceType string     `gorm:"not null"`
-	ResourceID   string     `gorm:"not null"`
-	Status       string     `gorm:"not null"`
-	StartedAt    time.Time  `gorm:"index:idx_start_time_end_time;default:current_timestamp;not null"`
-	FinishedAt   *time.Time `gorm:"index:idx_start_time_end_time;default:'1970-01-01 00:00:01';not null"`
+	OrgID        uint                `gorm:"not null"`
+	Name         string              `gorm:"not null"`
+	ResourceType string              `gorm:"not null"`
+	ResourceID   string              `gorm:"not null"`
+	Status       string              `gorm:"not null"`
+	StartedAt    time.Time           `gorm:"index:idx_start_time_end_time;default:current_timestamp;not null"`
+	FinishedAt   *time.Time          `gorm:"index:idx_start_time_end_time;default:'1970-01-01 00:00:01';not null"`
+	Events       []processEventModel `gorm:"foreignkey:ProcessID"`
 }
 
 // TableName changes the default table name.
 func (processModel) TableName() string {
 	return processTableName
+}
+
+type processEventModel struct {
+	ProcessID string
+	Log       string    `gorm:"not null"`
+	Name      string    `gorm:"not null"`
+	Timestamp time.Time `gorm:"index:idx_timestamp;default:current_timestamp;not null"`
+}
+
+// TableName changes the default table name.
+func (processEventModel) TableName() string {
+	return processEventTableName
 }
 
 // GormStore is a notification store using Gorm for data persistence.
@@ -69,25 +83,44 @@ func (s *GormStore) List(ctx context.Context, query process.Process) ([]process.
 
 	result := []process.Process{}
 
-	for _, n := range processes {
-		result = append(result, process.Process{
-			ID:           n.ID,
-			ParentID:     n.ParentID,
-			OrgID:        n.OrgID,
-			Name:         n.Name,
-			StartedAt:    n.StartedAt,
-			FinishedAt:   n.FinishedAt,
-			ResourceID:   n.ResourceID,
-			ResourceType: n.ResourceType,
-			Status:       n.Status,
-		})
+	for _, pm := range processes {
+
+		p := process.Process{
+			ID:           pm.ID,
+			ParentID:     pm.ParentID,
+			OrgID:        pm.OrgID,
+			Name:         pm.Name,
+			StartedAt:    pm.StartedAt,
+			FinishedAt:   pm.FinishedAt,
+			ResourceID:   pm.ResourceID,
+			ResourceType: pm.ResourceType,
+			Status:       pm.Status,
+		}
+
+		var processEvents []processEventModel
+
+		err := s.db.Model(&pm).Related(&processEvents, "Events").Error
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to find process events")
+		}
+
+		for _, em := range processEvents {
+			p.Events = append(p.Events, process.ProcessEvent{
+				ProcessID: em.ProcessID,
+				Name:      em.Name,
+				Log:       em.Log,
+				Timestamp: em.Timestamp,
+			})
+		}
+
+		result = append(result, p)
 	}
 
 	return result, nil
 }
 
-// Log logs a process entry
-func (s *GormStore) Log(ctx context.Context, p process.Process) error {
+// LogProcess logs a process entry
+func (s *GormStore) LogProcess(ctx context.Context, p process.Process) error {
 
 	existing := processModel{ID: p.ID, ParentID: p.ParentID}
 
@@ -121,4 +154,18 @@ func (s *GormStore) Log(ctx context.Context, p process.Process) error {
 	}
 
 	return nil
+}
+
+// LogEvent logs a process event
+func (s *GormStore) LogEvent(ctx context.Context, p process.ProcessEvent) error {
+
+	pem := processEventModel{
+		ProcessID: p.ProcessID,
+		Name:      p.Name,
+		Log:       p.Log,
+		Timestamp: p.Timestamp,
+	}
+
+	err := s.db.Create(&pem).Error
+	return errors.Wrap(err, "failed to create process event")
 }

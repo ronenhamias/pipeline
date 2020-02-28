@@ -19,14 +19,17 @@ import (
 	"strings"
 
 	"github.com/jinzhu/gorm"
+	"github.com/sirupsen/logrus"
 
 	"github.com/banzaicloud/pipeline/internal/app/pipeline/process"
+	"github.com/banzaicloud/pipeline/src/model"
 )
 
-// Migrate executes the table migrations for the notification module.
+// Migrate executes the table migrations for the process module.
 func Migrate(db *gorm.DB, logger process.Logger) error {
 	tables := []interface{}{
 		&processModel{},
+		&processEventModel{},
 	}
 
 	var tableNames string
@@ -38,5 +41,10 @@ func Migrate(db *gorm.DB, logger process.Logger) error {
 		"table_names": strings.TrimSpace(tableNames),
 	})
 
-	return db.AutoMigrate(tables...).Error
+	err := db.AutoMigrate(tables...).Error
+	if err != nil {
+		return err
+	}
+
+	return model.AddForeignKey(db, &logrus.Logger{}, &processModel{}, &processEventModel{}, "ProcessID")
 }
