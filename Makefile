@@ -305,6 +305,7 @@ buf: bin/buf _download-protos ## Generate client and server stubs from the proto
 # proto: buf
 proto: bin/protoc bin/protoc-gen-go ## Generate client and server stubs from the protobuf definition
 	bin/protoc -I bin/protoc-${PROTOC_VERSION} -I apis/dex --go_out=plugins=grpc,import_path=dex:.gen/dex $(shell find apis/dex -name '*.proto')
+	bin/protoc -I bin/protoc-${PROTOC_VERSION} -I apis/pipeline --go_out=plugins=grpc,import_path=pipeline:.gen/pipeline $(shell find apis/pipeline -name '*.proto')
 
 snapshot: SNAPSHOT_REF ?= $(shell git symbolic-ref -q --short HEAD || git rev-parse HEAD)
 snapshot:
