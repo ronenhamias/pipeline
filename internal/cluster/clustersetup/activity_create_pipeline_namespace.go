@@ -16,8 +16,12 @@ package clustersetup
 
 import (
 	"context"
+	"time"
 
 	"emperror.dev/errors"
+	processClient "github.com/banzaicloud/pipeline/internal/app/pipeline/process/client"
+	"go.uber.org/cadence/activity"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8sapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,16 +33,20 @@ type CreatePipelineNamespaceActivity struct {
 	namespace string
 
 	clientFactory ClientFactory
+
+	processLogger *processClient.Client
 }
 
 // NewCreatePipelineNamespaceActivity returns a new CreatePipelineNamespaceActivity.
 func NewCreatePipelineNamespaceActivity(
 	namespace string,
 	clientFactory ClientFactory,
+	processLogger *processClient.Client,
 ) CreatePipelineNamespaceActivity {
 	return CreatePipelineNamespaceActivity{
 		namespace:     namespace,
 		clientFactory: clientFactory,
+		processLogger: processLogger,
 	}
 }
 
@@ -48,6 +56,31 @@ type CreatePipelineNamespaceActivityInput struct {
 }
 
 func (a CreatePipelineNamespaceActivity) Execute(ctx context.Context, input CreatePipelineNamespaceActivityInput) error {
+	{
+		ainfo := activity.GetInfo(ctx)
+		pe := processClient.ProcessEvent{
+			ProcessID: ainfo.WorkflowExecution.ID,
+			Timestamp: ainfo.StartedTimestamp,
+			Name:      ainfo.ActivityType.Name,
+			Log:       ainfo.ActivityType.Name + " started",
+		}
+
+		err := a.processLogger.LogEvent(context.Background(), pe)
+		if err != nil {
+			activity.GetLogger(ctx).Warn("failed to write process event", zap.Error(err))
+		}
+
+		defer func() {
+			pe.Timestamp = time.Now()
+			pe.Log = ainfo.ActivityType.Name + " finished"
+
+			err := a.processLogger.LogEvent(context.Background(), pe)
+			if err != nil {
+				activity.GetLogger(ctx).Warn("failed to write process event", zap.Error(err))
+			}
+		}()
+	}
+
 	client, err := a.clientFactory.FromSecret(ctx, input.ConfigSecretID)
 	if err != nil {
 		return err

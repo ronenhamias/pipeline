@@ -323,6 +323,7 @@ func main() {
 			createPipelineNamespaceActivity := clustersetup.NewCreatePipelineNamespaceActivity(
 				config.Cluster.Namespace,
 				kubernetes.NewClientFactory(configFactory),
+				processLogger,
 			)
 			activity.RegisterWithOptions(createPipelineNamespaceActivity.Execute, activity.RegisterOptions{Name: clustersetup.CreatePipelineNamespaceActivityName})
 
