@@ -15,11 +15,15 @@
 package clustersetup
 
 import (
+	"context"
 	"time"
 
 	"emperror.dev/errors"
 	"go.uber.org/cadence"
 	"go.uber.org/cadence/workflow"
+	"go.uber.org/zap"
+
+	processClient "github.com/banzaicloud/pipeline/internal/app/pipeline/process/client"
 )
 
 // WorkflowName can be used to reference the cluster setup workflow.
@@ -29,6 +33,8 @@ const WorkflowName = "cluster-setup"
 type Workflow struct {
 	// InstallInit
 	InstallInitManifest bool
+
+	ProcessLogger *processClient.Client
 }
 
 // WorkflowInput is the input for a cluster setup workflow.
@@ -72,6 +78,50 @@ func (w Workflow) Execute(ctx workflow.Context, input WorkflowInput) error {
 		},
 	}
 	ctx = workflow.WithActivityOptions(ctx, activityOptions)
+
+	process := workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
+
+		winfo := workflow.GetInfo(ctx)
+		pe := processClient.ProcessEntry{
+			ID:           winfo.WorkflowExecution.ID,
+			Name:         winfo.WorkflowType.Name,
+			OrgID:        input.Organization.ID,
+			ResourceType: processClient.Cluster,
+			ResourceID:   input.Cluster.UID,
+			StartedAt:    workflow.Now(ctx),
+			Status:       processClient.Running,
+		}
+
+		err := w.ProcessLogger.LogProcess(context.Background(), pe)
+		if err != nil {
+			workflow.GetLogger(ctx).Warn("failed to write process log", zap.Error(err))
+		}
+
+		return pe
+	})
+
+	defer func() {
+		workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
+
+			var pe processClient.ProcessEntry
+			err := process.Get(&pe)
+			if err != nil {
+				workflow.GetLogger(ctx).Warn("failed to get start process log", zap.Error(err))
+				return nil
+			}
+
+			finishedAt := workflow.Now(ctx)
+			pe.FinishedAt = &finishedAt
+			pe.Status = processClient.Finished // TODO
+
+			err = w.ProcessLogger.LogProcess(context.Background(), pe)
+			if err != nil {
+				workflow.GetLogger(ctx).Warn("failed to write process log", zap.Error(err))
+			}
+
+			return nil
+		})
+	}()
 
 	// Install the cluster manifest to the cluster (if configured)
 	if w.InstallInitManifest {

@@ -28,7 +28,7 @@ func NewDomainClient(config Config, logger *zap.Logger) (client.DomainClient, er
 		return nil, errors.WrapIf(err, "could not create cadence domain client")
 	}
 
-	tracer, err := tracer.NewProcessTracer("127.0.0.1:9092")
+	_, err = tracer.NewProcessTracer("127.0.0.1:9092")
 	if err != nil {
 		return nil, errors.WrapIf(err, "could not create cadence client tracer")
 	}
@@ -37,7 +37,7 @@ func NewDomainClient(config Config, logger *zap.Logger) (client.DomainClient, er
 		serviceClient,
 		&client.Options{
 			Identity: config.Identity,
-			Tracer:   tracer,
+			// Tracer:   tracer,
 		},
 	), nil
 }

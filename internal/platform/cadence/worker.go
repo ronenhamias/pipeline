@@ -49,7 +49,7 @@ func NewWorker(config Config, taskList string, logger *zap.Logger) (worker.Worke
 		}
 	}
 
-	tracer, err := tracer.NewProcessTracer("127.0.0.1:9092")
+	_, err = tracer.NewProcessTracer("127.0.0.1:9092")
 	if err != nil {
 		return nil, errors.WrapIf(err, "could not create cadence worker tracer")
 	}
@@ -60,7 +60,7 @@ func NewWorker(config Config, taskList string, logger *zap.Logger) (worker.Worke
 		taskList,
 		worker.Options{
 			Logger: logger,
-			Tracer: tracer,
+			// Tracer: tracer,
 		},
 	), nil
 }

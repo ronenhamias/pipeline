@@ -298,10 +298,14 @@ func main() {
 		commonSecretStore := commonadapter.NewSecretStore(secret.Store, commonadapter.OrgIDContextExtractorFunc(auth.GetCurrentOrganizationID))
 		configFactory := kubernetes.NewConfigFactory(commonSecretStore)
 
+		processLogger, err := processClient.NewClient(processClient.Config{Address: "127.0.0.1:9092"})
+		emperror.Panic(err)
+
 		// Cluster setup
 		{
 			wf := clustersetup.Workflow{
 				InstallInitManifest: config.Cluster.Manifest != "",
+				ProcessLogger:       processLogger,
 			}
 			workflow.RegisterWithOptions(wf.Execute, workflow.RegisterOptions{Name: clustersetup.WorkflowName})
 
@@ -389,9 +393,6 @@ func main() {
 
 		// Register azure specific workflows
 		registerAzureWorkflows(secretStore, tokenGenerator, azurePKEClusterStore)
-
-		processLogger, err := processClient.NewClient(processClient.Config{Address: "127.0.0.1:9092"})
-		emperror.Panic(err)
 
 		// Register EKS specific workflows
 		err = registerEKSWorkflows(secret.Store, eksClusters, processLogger)
