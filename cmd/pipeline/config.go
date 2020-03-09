@@ -118,9 +118,10 @@ type PipelineConfig struct {
 	Addr         string
 	InternalAddr string
 	Grpc         struct {
-		Addr     string
-		CertFile string
-		KeyFile  string
+		Addr       string
+		CACertFile string
+		CertFile   string
+		KeyFile    string
 	}
 	CertFile string
 	KeyFile  string

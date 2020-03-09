@@ -16,8 +16,11 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base32"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -486,10 +489,30 @@ func main() {
 		dynamicClientFactory,
 	)
 
-	grpcCreds, err := credentials.NewServerTLSFromFile(config.Pipeline.Grpc.CertFile, config.Pipeline.Grpc.KeyFile)
-	emperror.Panic(err)
+	grpcCACert, err := ioutil.ReadFile(config.Pipeline.Grpc.CACertFile)
+	if err != nil {
+		emperror.Panic(err)
+	}
 
-	grpcServer := grpc.NewServer(grpc.Creds(grpcCreds))
+	grpcClientCertCAs := x509.NewCertPool()
+	if !grpcClientCertCAs.AppendCertsFromPEM(grpcCACert) {
+		emperror.Panic(errors.New("failed to append GRPC CA certificate"))
+	}
+
+	serverCertificate, err := tls.LoadX509KeyPair(config.Pipeline.Grpc.CertFile, config.Pipeline.Grpc.KeyFile)
+	if err != nil {
+		emperror.Panic(err)
+	}
+
+	grpcTLS := tls.Config{
+		Certificates: []tls.Certificate{serverCertificate},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    grpcClientCertCAs,
+	}
+
+	grpcCreds := credentials.NewTLS(&grpcTLS)
+
+	grpcServer := grpc.NewServer(grpc.Creds(grpcCreds), grpc.UnaryInterceptor())
 	defer grpcServer.Stop()
 
 	// Initialise Gin router

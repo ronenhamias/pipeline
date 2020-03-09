@@ -16,8 +16,12 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"time"
 
+	"emperror.dev/errors"
 	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -30,15 +34,35 @@ type Client struct {
 }
 
 type Config struct {
-	Address  string
-	CertFile string
+	Address    string
+	CACertFile string
+	CertFile   string
+	KeyFile    string
 }
 
 func NewClient(c Config) (*Client, error) {
-	creds, err := credentials.NewClientTLSFromFile(c.CertFile, "")
+	rootCAs := x509.NewCertPool()
+
+	caCertPEM, err := ioutil.ReadFile(c.CACertFile)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to read GRPC CA certificate")
 	}
+
+	if !rootCAs.AppendCertsFromPEM(caCertPEM) {
+		return nil, errors.New("failed to append GRPC CA certificate")
+	}
+
+	clientCert, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load GRPC client certificate")
+	}
+
+	tlsConfig := tls.Config{
+		RootCAs:      rootCAs,
+		Certificates: []tls.Certificate{clientCert},
+	}
+
+	creds := credentials.NewTLS(&tlsConfig)
 
 	conn, err := grpc.Dial(c.Address, grpc.WithTransportCredentials(creds))
 	if err != nil {
