@@ -512,7 +512,7 @@ func main() {
 
 	grpcCreds := credentials.NewTLS(&grpcTLS)
 
-	grpcServer := grpc.NewServer(grpc.Creds(grpcCreds), grpc.UnaryInterceptor())
+	grpcServer := grpc.NewServer(grpc.Creds(grpcCreds))
 	defer grpcServer.Stop()
 
 	// Initialise Gin router
