@@ -58,6 +58,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	zaplog "logur.dev/integration/zap"
 	"logur.dev/logur"
 
@@ -485,7 +486,10 @@ func main() {
 		dynamicClientFactory,
 	)
 
-	grpcServer := grpc.NewServer()
+	grpcCreds, err := credentials.NewServerTLSFromFile(config.Pipeline.Grpc.CertFile, config.Pipeline.Grpc.KeyFile)
+	emperror.Panic(err)
+
+	grpcServer := grpc.NewServer(grpc.Creds(grpcCreds))
 	defer grpcServer.Stop()
 
 	// Initialise Gin router
@@ -1129,8 +1133,8 @@ func main() {
 	}
 
 	group.Add(func() error {
-		logger.Info("Pipeline GRPC listening", map[string]interface{}{"address": "grpc://" + config.Pipeline.GrpcAddr})
-		grpcListerner, err := net.Listen("tcp", config.Pipeline.GrpcAddr)
+		logger.Info("Pipeline GRPC listening", map[string]interface{}{"address": "grpc://" + config.Pipeline.Grpc.Addr})
+		grpcListerner, err := net.Listen("tcp", config.Pipeline.Grpc.Addr)
 		if err != nil {
 			return err
 		}

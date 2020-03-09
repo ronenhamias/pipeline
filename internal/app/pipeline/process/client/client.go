@@ -20,6 +20,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	pb "github.com/banzaicloud/pipeline/.gen/pipeline"
 )
@@ -29,11 +30,17 @@ type Client struct {
 }
 
 type Config struct {
-	Address string
+	Address  string
+	CertFile string
 }
 
 func NewClient(c Config) (*Client, error) {
-	conn, err := grpc.Dial(c.Address, grpc.WithInsecure())
+	creds, err := credentials.NewClientTLSFromFile(c.CertFile, "")
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := grpc.Dial(c.Address, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return nil, err
 	}

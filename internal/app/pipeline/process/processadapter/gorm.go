@@ -22,7 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/banzaicloud/pipeline/internal/app/pipeline/process"
-	"github.com/banzaicloud/pipeline/src/model"
+	"github.com/banzaicloud/pipeline/pkg/gormhelper"
 )
 
 // Migrate executes the table migrations for the process module.
@@ -46,5 +46,5 @@ func Migrate(db *gorm.DB, logger process.Logger) error {
 		return err
 	}
 
-	return model.AddForeignKey(db, &logrus.Logger{}, &processModel{}, &processEventModel{}, "ProcessID")
+	return gormhelper.AddForeignKey(db, &logrus.Logger{}, &processModel{}, &processEventModel{}, "ProcessID")
 }
