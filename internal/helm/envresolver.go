@@ -19,6 +19,7 @@ import (
 	"path"
 
 	"emperror.dev/errors"
+	helmEnv "k8s.io/helm/pkg/helm/environment"
 )
 
 const (
@@ -58,8 +59,12 @@ type EnvResolver interface {
 	ResolveHelmEnv(ctx context.Context, organizationID uint) (HelmEnv, error)
 
 	ResolvePlatformEnv(ctx context.Context) (HelmEnv, error)
-}
 
+	// GenerateHelmRepoEnv temporary method to gain control over the legacy global function
+	//
+	// Deprecated: this method is to be changed (the return value should not depend on any external libraries!)
+	GenerateHelmRepoEnv(orgName string) helmEnv.EnvSettings
+}
 type helmEnvResolver struct {
 	// helmHomes the configurable directory location where helm homes are to be set up
 	helmHomes  string
@@ -94,4 +99,10 @@ func (h helmEnvResolver) ResolvePlatformEnv(ctx context.Context) (HelmEnv, error
 		home:     path.Join(h.helmHomes, platformHelmHome, helmPostFix),
 		platform: true,
 	}, nil
+}
+
+func (h helmEnvResolver) GenerateHelmRepoEnv(orgName string) helmEnv.EnvSettings {
+
+	h.logger.Error("no-op implementation of helm environment generation")
+	return helmEnv.EnvSettings{}
 }
