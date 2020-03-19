@@ -25,6 +25,7 @@ import (
 
 	"github.com/banzaicloud/pipeline/internal/ark/api"
 	"github.com/banzaicloud/pipeline/internal/ark/client"
+	"github.com/banzaicloud/pipeline/internal/helm/helmadapter"
 	"github.com/banzaicloud/pipeline/pkg/providers"
 	"github.com/banzaicloud/pipeline/src/auth"
 	"github.com/banzaicloud/pipeline/src/helm"
@@ -294,7 +295,7 @@ func (s *DeploymentsService) installDeployment(
 		false,
 		nil,
 		kubeConfig,
-		helm.GenerateHelmRepoEnv(s.org.Name),
+		helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(s.org.Name),
 		options...,
 	)
 	if err != nil {

@@ -25,6 +25,7 @@ import (
 	k8sHelm "k8s.io/helm/pkg/helm"
 
 	"github.com/banzaicloud/pipeline/internal/global"
+	"github.com/banzaicloud/pipeline/internal/helm/helmadapter"
 	"github.com/banzaicloud/pipeline/internal/providers/azure/pke"
 	"github.com/banzaicloud/pipeline/internal/secret/secrettype"
 	pkgCluster "github.com/banzaicloud/pipeline/pkg/cluster"
@@ -393,9 +394,9 @@ func deployAutoscalerChart(cluster CommonCluster, nodeGroups []nodeGroup, kubeCo
 
 	switch action {
 	case install:
-		_, err = helm.CreateDeployment(chartName, chartVersion, nil, helm.SystemNamespace, releaseName, false, nil, kubeConfig, helm.GenerateHelmRepoEnv(org.Name), k8sHelm.ValueOverrides(yamlValues))
+		_, err = helm.CreateDeployment(chartName, chartVersion, nil, helm.SystemNamespace, releaseName, false, nil, kubeConfig, helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(org.Name), k8sHelm.ValueOverrides(yamlValues))
 	case upgrade:
-		_, err = helm.UpgradeDeployment(releaseName, chartName, chartVersion, nil, yamlValues, false, kubeConfig, helm.GenerateHelmRepoEnv(org.Name))
+		_, err = helm.UpgradeDeployment(releaseName, chartName, chartVersion, nil, yamlValues, false, kubeConfig, helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(org.Name))
 	default:
 		return err
 	}

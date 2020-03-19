@@ -22,6 +22,7 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/release"
 
 	"github.com/banzaicloud/pipeline/internal/common"
+	"github.com/banzaicloud/pipeline/internal/helm/helmadapter"
 	pkgHelm "github.com/banzaicloud/pipeline/pkg/helm"
 	"github.com/banzaicloud/pipeline/src/helm"
 )
@@ -111,7 +112,7 @@ func (s *HelmService) InstallDeployment(
 		false,
 		nil,
 		cluster.KubeConfig,
-		helm.GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
+		helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
 		options...,
 	)
 	if err != nil {
@@ -162,7 +163,7 @@ func (s *HelmService) UpdateDeployment(
 				values,
 				false,
 				cluster.KubeConfig,
-				helm.GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
+				helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
 			)
 			if err != nil {
 				return errors.WrapIfWithDetails(
@@ -212,7 +213,7 @@ func (s *HelmService) ApplyDeployment(
 				values,
 				false,
 				cluster.KubeConfig,
-				helm.GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
+				helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
 			)
 			if err != nil {
 				return errors.WrapIfWithDetails(
@@ -244,7 +245,7 @@ func (s *HelmService) ApplyDeployment(
 				false,
 				nil,
 				cluster.KubeConfig,
-				helm.GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
+				helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
 				options...,
 			)
 			if err != nil {
@@ -269,7 +270,7 @@ func (s *HelmService) ApplyDeployment(
 			false,
 			nil,
 			cluster.KubeConfig,
-			helm.GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
+			helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(cluster.OrganizationName), // TODO: refactor!!!!!!
 			options...,
 		)
 		if err != nil {

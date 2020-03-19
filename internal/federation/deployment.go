@@ -21,6 +21,7 @@ import (
 	k8sHelm "k8s.io/helm/pkg/helm"
 	pkgHelmRelease "k8s.io/helm/pkg/proto/hapi/release"
 
+	"github.com/banzaicloud/pipeline/internal/helm/helmadapter"
 	"github.com/banzaicloud/pipeline/src/auth"
 	"github.com/banzaicloud/pipeline/src/cluster"
 	"github.com/banzaicloud/pipeline/src/helm"
@@ -85,7 +86,7 @@ func InstallOrUpgradeDeployment(
 			if !upgrade {
 				return nil
 			}
-			_, err = helm.UpgradeDeployment(releaseName, deploymentName, chartVersion, nil, values, false, kubeConfig, helm.GenerateHelmRepoEnv(org.Name))
+			_, err = helm.UpgradeDeployment(releaseName, deploymentName, chartVersion, nil, values, false, kubeConfig, helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(org.Name))
 			if err != nil {
 				return errors.WrapIfWithDetails(err, "could not upgrade deployment", "deploymentName", deploymentName)
 			}
@@ -112,7 +113,7 @@ func InstallOrUpgradeDeployment(
 		false,
 		nil,
 		kubeConfig,
-		helm.GenerateHelmRepoEnv(org.Name),
+		helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(org.Name),
 		options...,
 	)
 	if err != nil {

@@ -31,6 +31,7 @@ import (
 	arkAPI "github.com/banzaicloud/pipeline/internal/ark/api"
 	arkPosthook "github.com/banzaicloud/pipeline/internal/ark/posthook"
 	"github.com/banzaicloud/pipeline/internal/global"
+	"github.com/banzaicloud/pipeline/internal/helm/helmadapter"
 	"github.com/banzaicloud/pipeline/internal/hollowtrees"
 	pkgCluster "github.com/banzaicloud/pipeline/pkg/cluster"
 	pkgCommon "github.com/banzaicloud/pipeline/pkg/common"
@@ -93,7 +94,7 @@ func installDeployment(cluster CommonCluster, namespace string, deploymentName s
 		k8sHelm.InstallWait(wait),
 		k8sHelm.ValueOverrides(values),
 	}
-	_, err = helm.CreateDeployment(deploymentName, chartVersion, nil, namespace, releaseName, false, nil, kubeConfig, helm.GenerateHelmRepoEnv(org.Name), options...)
+	_, err = helm.CreateDeployment(deploymentName, chartVersion, nil, namespace, releaseName, false, nil, kubeConfig, helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(org.Name), options...)
 	if err != nil {
 		log.Errorf("Deploying '%s' failed due to: %s", deploymentName, err.Error())
 		return err

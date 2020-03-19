@@ -21,6 +21,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/ghodss/yaml"
 
+	"github.com/banzaicloud/pipeline/internal/helm/helmadapter"
 	pkgHelm "github.com/banzaicloud/pipeline/pkg/helm"
 	"github.com/banzaicloud/pipeline/src/auth"
 	"github.com/banzaicloud/pipeline/src/cluster"
@@ -123,7 +124,7 @@ func (m *FederationReconciler) ensureCRDSourceForExtDNS(
 		return errors.WrapIf(err, "could not marshal chart value overrides")
 	}
 
-	_, err = helm.UpgradeDeployment(releaseName, deploymentName, resp.Release.Chart.Metadata.Version, nil, valuesOverride, true, kubeConfig, helm.GenerateHelmRepoEnv(org.Name))
+	_, err = helm.UpgradeDeployment(releaseName, deploymentName, resp.Release.Chart.Metadata.Version, nil, valuesOverride, true, kubeConfig, helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(org.Name))
 	if err != nil {
 		return errors.WrapIfWithDetails(err, "could not upgrade deployment", "deploymentName", deploymentName)
 	}

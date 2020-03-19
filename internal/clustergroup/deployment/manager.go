@@ -31,6 +31,7 @@ import (
 	hapi_release5 "k8s.io/helm/pkg/proto/hapi/release"
 
 	"github.com/banzaicloud/pipeline/internal/clustergroup/api"
+	"github.com/banzaicloud/pipeline/internal/helm/helmadapter"
 	pkgHelm "github.com/banzaicloud/pipeline/pkg/helm"
 	"github.com/banzaicloud/pipeline/src/helm"
 )
@@ -585,7 +586,7 @@ func (m CGDeploymentManager) SyncDeployment(clusterGroup *api.ClusterGroup, orgN
 	// get deployment status for each cluster group member
 	response := make([]TargetClusterStatus, 0)
 
-	env := helm.GenerateHelmRepoEnv(orgName)
+	env := helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(orgName)
 	requestedChart, err := helm.GetRequestedChart(depInfo.ReleaseName, depInfo.Chart, depInfo.ChartVersion, deploymentModel.DeploymentPackage, env)
 	if err != nil {
 		return nil, fmt.Errorf("error loading chart: %v", err)
@@ -712,7 +713,7 @@ func (m CGDeploymentManager) CreateDeployment(clusterGroup *api.ClusterGroup, or
 		}
 	}
 
-	env := helm.GenerateHelmRepoEnv(orgName)
+	env := helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(orgName)
 	requestedChart, err := helm.GetRequestedChart(cgDeployment.ReleaseName, cgDeployment.Name, cgDeployment.Version, cgDeployment.Package, env)
 	if err != nil {
 		return nil, fmt.Errorf("error loading chart: %v", err)
@@ -751,7 +752,7 @@ func (m CGDeploymentManager) CreateDeployment(clusterGroup *api.ClusterGroup, or
 // UpdateDeployment upgrades deployment using provided values or using already provided values if ReUseValues = true.
 // The deployment is installed on a member cluster in case it's was not installed previously.
 func (m CGDeploymentManager) UpdateDeployment(clusterGroup *api.ClusterGroup, orgName string, cgDeployment *ClusterGroupDeployment) ([]TargetClusterStatus, error) {
-	env := helm.GenerateHelmRepoEnv(orgName)
+	env := helmadapter.NewEnvGenerator().GenerateHelmRepoEnv(orgName)
 	requestedChart, err := helm.GetRequestedChart(cgDeployment.ReleaseName, cgDeployment.Name, cgDeployment.Version, cgDeployment.Package, env)
 	if err != nil {
 		return nil, fmt.Errorf("error loading chart: %v", err)
