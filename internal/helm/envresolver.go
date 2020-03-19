@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	platformHelmHome = "pipeline"
-	helmPostFix      = "helm"
+	PlatformHelmEnv = "pipeline"
+	helmPostFix     = "helm"
 )
 
 // OrgService interface for decoupling organization related operations
@@ -96,7 +96,7 @@ func (h helmEnvResolver) ResolveHelmEnv(ctx context.Context, organizationID uint
 
 func (h helmEnvResolver) ResolvePlatformEnv(ctx context.Context) (HelmEnv, error) {
 	return HelmEnv{
-		home:     path.Join(h.helmHomes, platformHelmHome, helmPostFix),
+		home:     path.Join(h.helmHomes, PlatformHelmEnv, helmPostFix),
 		platform: true,
 	}, nil
 }

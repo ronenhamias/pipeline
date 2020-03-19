@@ -17,27 +17,32 @@ package helmadapter
 import (
 	"context"
 
+	"emperror.dev/errors"
 	"k8s.io/helm/pkg/helm/environment"
 
 	"github.com/banzaicloud/pipeline/internal/helm"
+	legacyHelm "github.com/banzaicloud/pipeline/src/helm"
 )
 
 //  envGenerator intermediary adapter component for handling legacy helm env generation
 type envGenerator struct {
 }
 
-func (e envGenerator) GenerateHelmRepoEnv(orgName string) environment.EnvSettings {
-	panic("implement me")
-}
-
-func (e envGenerator) ResolveHelmEnv(ctx context.Context, organizationID uint) (helm.HelmEnv, error) {
-	panic("implement me")
-}
-
-func (e envGenerator) ResolvePlatformEnv(ctx context.Context) (helm.HelmEnv, error) {
-	panic("implement me")
-}
-
 func NewEnvGenerator() helm.EnvResolver {
 	return envGenerator{}
+}
+
+// GenerateHelmRepoEnv wraps the legacy method to gain control over the behaviour
+func (envGenerator) GenerateHelmRepoEnv(orgName string) environment.EnvSettings {
+
+	// ignoring the orgName
+	return legacyHelm.GenerateHelmRepoEnv(helm.PlatformHelmEnv)
+}
+
+func (envGenerator) ResolveHelmEnv(ctx context.Context, organizationID uint) (helm.HelmEnv, error) {
+	return helm.HelmEnv{}, errors.New("no-op method, invalid usage")
+}
+
+func (envGenerator) ResolvePlatformEnv(ctx context.Context) (helm.HelmEnv, error) {
+	return helm.HelmEnv{}, errors.New("no-op method, invalid usage")
 }
